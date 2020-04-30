@@ -29,7 +29,7 @@ mean(xx_vec)
 library(mcmc)
 data(logit)
 glm.out <- glm(y ~ x1 + x2 + x3 + x4, data = logit,
-           family = binomial(), x = TRUE)
+               family = binomial(), x = TRUE)
 summary(glm.out)
 
 x <- glm.out$x
@@ -43,6 +43,7 @@ logl <- function(beta) {
   return(logl - sum(beta^2)/8)
 }
 
+## mcmc
 niter<-100000
 all_beta_est<-matrix(NA,niter,5)
 beta_est<-rep(0,5)
@@ -56,8 +57,19 @@ for(iter in 1:niter){
 }
 colMeans(all_beta_est[50001:niter,])
 
-coef(glm.out)
+## importance sampling
+sum_numerator<-rep(0,5)
+sum_denominator<-0
+cc<-coef(glm.out)
+ee<-sweep(matrix(rnorm(5*100000),100000,5),2,cc,"+")
+for(iter in 1:100000){
+  ww<-exp(logl(ee[iter,])+sum((ee[iter,]-cc)^2)/2)
+  sum_numerator<-sum_numerator+ee[iter,]*ww
+  sum_denominator<-sum_denominator+ww
+}
+sum_numerator/sum_denominator
 
+## mcmc package
 lupost <- function(beta, x, y, ...) {
   eta <- as.numeric(x %*% beta)
   logp <- ifelse(eta < 0, eta - log1p(exp(eta)),- log1p(exp(- eta)))
