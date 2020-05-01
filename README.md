@@ -241,8 +241,8 @@ mean(all_beta0[3001:niter])
 mean(all_beta1[3001:niter])
 ```
 
-Refenreces:
-[1] Statistical Ecology - Ruth King - Handbook of Markov Chain Monte Carlo
+Refenreces:    
+[1] Statistical Ecology - Ruth King - Handbook of Markov Chain Monte Carlo    
 [2] Sampling from the posterior distribution in generalized linear mixed models - Dani Gamerman
 
 
