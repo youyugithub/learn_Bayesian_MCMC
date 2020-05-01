@@ -163,3 +163,86 @@ rowMeans(all_alpha[,501:niter])-alpha_true
 plot(rowMeans(all_alpha[,501:niter]))
 points(alpha_true)
 ```
+
+```
+## mixed model logistic regression
+
+set.seed(10)
+nind<-100
+nobs<-200
+beta0_true<-1
+beta1_true<-2
+sigma2_true<-4
+alpha_true<-rnorm(nind,0,sqrt(sigma2_true))
+xx<-matrix(rnorm(nind*nobs),nind,nobs)
+yy<-matrix(rbinom(nind*nobs,size=1,prob=plogis(beta0_true+beta1_true*xx+alpha_true)),nind,nobs)
+
+#############################
+# variance of alpha unknown #
+#############################
+
+niter<-5000
+all_beta0<-rep(NA,niter)
+all_beta1<-rep(NA,niter)
+all_sigma2<-rep(NA,niter)
+all_alpha<-matrix(NA,nind,niter)
+beta0_est<-1
+beta1_est<-2
+sigma2_est<-1
+alpha_est<-alpha_true
+
+logpy_full<-function(beta0,beta1){
+  eta<-c(beta0+beta1*xx+alpha_est)
+  logp<-ifelse(eta<0,eta-log1p(exp(eta)),-log1p(exp(-eta)))
+  logq<-ifelse(eta<0,-log1p(exp(eta)),-eta-log1p(exp(-eta)))
+  logl<-sum(logp[c(yy)==1])+sum(logq[c(yy)==0])
+  return(logl-beta0^2/32-beta1^2/32)
+}
+
+logpyi_full<-function(idx,alphai){
+  etai<-beta0_est+beta1_est*xx[idx,]+alphai
+  logpi<-ifelse(etai<0,etai-log1p(exp(etai)),-log1p(exp(-etai)))
+  logqi<-ifelse(etai<0,-log1p(exp(etai)),-etai-log1p(exp(-etai)))
+  yyi<-yy[idx,]
+  logli<-sum(logpi[yyi==1])+sum(logqi[yyi==0])
+  return(logli-alphai^2/2/sigma2_est)
+}
+
+for(iter in 1:niter){
+  cat(iter,"-")
+  beta0_prop<-rnorm(1,beta0_est,0.1)
+  beta1_prop<-rnorm(1,beta1_est,0.1)
+  HR<-exp(logpy_full(beta0_prop,beta1_prop)-logpy_full(beta0_est,beta1_est))
+  if(runif(1)<HR){
+    beta0_est<-beta0_prop
+    beta1_est<-beta1_prop
+  }
+  all_beta0[iter]<-beta0_est
+  all_beta1[iter]<-beta1_est
+  for(ii in 1:nind){
+    alpha_prop<-rnorm(1,alpha_est[ii],0.2)
+    HR<-exp(logpyi_full(ii,alpha_prop)-logpyi_full(ii,alpha_est[ii]))
+    if(runif(1)<HR){
+      alpha_est[ii]<-alpha_prop
+    }
+    all_alpha[ii,iter]<-alpha_est[ii]
+  }
+  sigma2_est<-1/rgamma(1,1+nind/2,1+sum(alpha_est^2)/2)
+  all_sigma2[iter]<-sigma2_est
+}
+
+plot(all_beta0[2001:niter],type="l")
+plot(all_alpha[1,2001:niter],type="l")
+plot(all_sigma2[2001:niter],type="l")
+
+mean(all_sigma2)
+
+mean(all_beta0[3001:niter])
+mean(all_beta1[3001:niter])
+```
+
+Refenreces:
+[1] Statistical Ecology - Ruth King - Handbook of Markov Chain Monte Carlo
+[2] Sampling from the posterior distribution in generalized linear mixed models - Dani Gamerman
+
+
